@@ -66,9 +66,8 @@ def create_net(lmdb, mean_file, batch_size, include_acc=False):
 
 def write_net():
     global train_lmdb
-    mean_file = "net/mean.binaryproto"
-    train_proto = "net/train.prototxt"
-    test_proto = "net/test.prototxt"
+    mean_file = "model/mean.binaryproto"
+    train_proto = "model/train.prototxt"
 
     #写入train.prototxt文件
     with open(train_proto, 'w') as f:
