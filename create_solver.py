@@ -15,7 +15,7 @@ def write_solver():
     solver_string.display = 100
     solver_string.max_iter = 4000
     solver_string.snapshot = 500
-    solver_string.snapshot_format = 1
+    solver_string.snapshot_format = 0
     solver_string.snapshot_prefix = "model/caffe_model"
     solver_string.solver_mode = caffe.proto.caffe_pb2.SolverParameter.GPU
 
