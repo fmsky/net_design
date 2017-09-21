@@ -26,3 +26,70 @@ stepvalue参数说明：
 * snapshot：保存临时模型的迭代数
 * snapshot_prefix：模型前缀
 * solver_mode：优化模式。可以使用GPU或者CPU
+
+####Layer
+1. Convolution Layer
+通俗理解为提取图像的特征，向后传播提取的特征，特征数由num_output定。
+```
+  layer {
+  name: "conv1"
+  type: "Convolution"
+  bottom: "data" #输入
+  top: "conv1"  #输出
+  param { 
+    lr_mult: 1  #weight的学习率
+  }
+  param {
+    lr_mult: 2  #bias（偏执项）的学习率
+  }
+  convolution_param {
+    num_output: 20 #输出特征提取数
+    kernel_size: 5  #卷积核大小为5x5
+    weight_filler {
+      type: "xavier"  #权值初始化方式
+    }
+    bias_filler {
+      type: "constant" #偏执项的初始化。一般设置为“constant”，值全为0
+    }
+  }
+}
+```  
+2. Pooling Layer
+通过卷积获得特征，利用这些特征做分类，计算量依旧会很大，并且，如果分类器特征输入过多，极易出现过拟合。因此，为了描述大的图像，对不同位置的特征进行聚合统计，可以计算图像一个区域上的某个特定特征的平均值 (或最大值)。这些概要统计特征不仅具有低得多的维度 (相比使用所有提取得到的特征)，同时还会改善结果(不容易过拟合)。这种聚合的操作就叫做池化 (pooling)，也称为平均池化或者最大池化 (取决于计算池化的方法)。
+```
+layer {
+  name: "pool1"
+  type: "Pooling"
+  bottom: "conv1"
+  top: "pool1"
+  pooling_param {
+    pool: MAX #最大池化
+    kernel_size: 3
+    stride: 2
+  }
+}
+```
+3. Dropout Layer
+定义dropout层，目的是防止cnn过拟合，在模型训练时随机让网络某些隐含层节点的权重不工作，不工作的那些节点可以暂时认为不是网络结构的一部分，但是它的权重得保留下来（只是暂时不更新而已)。如：训练过程中dropout为0.3，我们在测试时不会进行dropout,而是把输出乘以0.7。
+```
+ layer {          
+  name: "drop7"  
+  type: "Dropout"  
+  bottom: "fc7"  
+  top: "fc7"  
+  dropout_param {  
+    dropout_ratio: 0.3     #定义选择节点的概率  
+  }  
+} 
+```
+4. ReLU Layer
+在标准的ReLU激活函数中,当输入为x时,如果x>0,则输出 x,如果输入<=0,则输出0,即输出为max(0,x);
+在非标准的ReLU激活函数中,当输入x<=0时, 输出为x * negative_slop(它是一个参数,默认为0)
+```
+layer {
+  name: "relu3"
+  type: "ReLU"
+  bottom: "fc1"
+  top: "fc1"
+}
+```
