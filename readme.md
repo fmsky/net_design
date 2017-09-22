@@ -151,3 +151,4 @@ $$\theta_j^{'}=\theta_j+(y^i-h_\theta(x^i))x_j^i$$
 &emsp;**Batch gradient descent:** Use all examples in each iteration；
 &emsp;**Stochastic gradient descent:** Use 1 example in each iteration；
 &emsp;**Mini-batch gradient descent:** Use b examples in each iteration.
+###测试
