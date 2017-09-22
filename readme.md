@@ -1,4 +1,5 @@
 #网络设计日志
+***
 这部分记录caffe中一些Layer和parameter的说明
 
 ####solver.prototxt
@@ -93,3 +94,60 @@ layer {
   top: "fc1"
 }
 ```
+
+####梯度下降法
+***
+以线性回归算法为例：$$h_\theta=\sum_{j=0}^n\theta_jx_j $$
+对应的损失函数为：$J_{train}{(\theta)}=\frac{1}{(2m)\sum_{i=1}^m(h_\theta(x^{(i)})-y^{(i)})}$
+下面是一个二维参数（$\theta_0$和$\theta_1$）组对应损失函数的可视化图：
+![alt text](http://images2015.cnblogs.com/blog/764050/201512/764050-20151230183324042-1022081727.png "title")
+#####1.批量梯度下降法
+批量梯度下降法（Batch Gradient Descent，简称BGD）是梯度下降法最原始的形式，它的具体思路是在更新每一参数时都使用所有的样本来进行更新，其数学形式如下：
+    &emsp;(1)对上述的损失函数求偏导：
+&emsp;&emsp;$\frac{\delta J(\theta)}{\delta\theta_j}=-\frac{1}{m}\sum_{i=1}^m(y^j-h_\theta(x^i))x_j^i$
+    &emsp;(2)由于是最小化风险函数，所以按照每个参数$\theta$的梯度负方向来更新每个$\theta$:
+&emsp;&emsp;$\theta_j^{'}=\theta_j+\frac{1}{m}\sum_{i=1}^m(y^i-h_\theta(x^{(i)}))x_j^i$
+    &emsp;具体伪代码形式为：
+    &emsp;&emsp;repeat{
+      &emsp;&emsp;&emsp;$\theta_j^{'}=\theta_j+\frac{1}{m}\sum_{i=1}^m(y^i-h_\theta(x^{(i)}))x_j^i$
+      &emsp;&emsp;&emsp;(for every j=0,...,n)
+    &emsp;&emsp;}
+从上面公式可以注意到，它得到的是一个全局最优解，但是每迭代一步，都要用到训练集所有的数据，如果样本数目m很大，那么可想而知这种方法的迭代速度！所以，这就引入了另外一种方法，随机梯度下降。
+    &emsp;**优点：**全局最优解；易于并行实现；
+    &emsp;**缺点：**样本数量大时，训练过程缓慢。
+从迭代次数上看，BGD迭代的次数相对较少。其迭代的收敛曲线示意图如下：
+![alt text](http://images2015.cnblogs.com/blog/764050/201512/764050-20151230190320667-1412088485.png "title")
+#####2.随机梯度下降法SGD
+由于批量梯度下降法在更新每一个参数时，都需要所有的训练样本，所以训练过程会随着样本数量的加大而变得异常的缓慢。随机梯度下降法（Stochastic Gradient Descent，简称SGD）正是为了解决批量梯度下降法这一弊端而提出的。
+　　&emsp;将上面的损失函数写为如下形式：
+&emsp;&emsp;$J(\theta)=\frac{1}{m}\sum_{i=1}^m\frac{1}{2}(y^i-h_\theta(x^i))^2=\frac{1}{m}\sum_{i=1}^m\cos t(\theta,(x^i,y^i))$
+&emsp;&emsp;$\cos t(\theta,(x^i,y^i))=\frac{1}{2}(y^i-h_\theta(x^i))^2$
+    &emsp;利用每隔样本的损失函数对$\theta$求偏导得到对应的梯度，来更新$\theta$：
+&emsp;&emsp;$\theta_j^{'}=\theta_j+(y^i-h_\theta(x^i))x_j^i$ 
+    &emsp;具体的伪代码形式为：
+    &emsp;&emsp;1.Randomly shuffle dataset;
+    &emsp;&emsp;2.repeat{
+    &emsp;&emsp;&emsp;for i=1,...,m{
+    &emsp;&emsp;&emsp;&emsp;$\theta_j^{'}=\theta_j+(y^i-h_\theta(x^i))x_j^i$ 
+    &emsp;&emsp;&emsp;&emsp;(for j=0,...,n)                     
+    &emsp;&emsp;&emsp;}
+    &emsp;&emsp;}
+随机梯度下降是通过每个样本来迭代更新一次，如果样本量很大的情况（例如几十万），那么可能只用其中几万条或者几千条的样本，就已经将theta迭代到最优解了，对比上面的批量梯度下降，迭代一次需要用到十几万训练样本，一次迭代不可能最优，如果迭代10次的话就需要遍历训练样本10次。但是，SGD伴随的一个问题是噪音较BGD要多，使得SGD并不是每次迭代都向着整体最优化方向。
+    &emsp;**优点：**训练速度快；
+    &emsp;**缺点：**准确度下降，并不是全局最优；不易于并行实现。
+从迭代的次数上来看，SGD迭代的次数较多，在解空间的搜索过程看起来很盲目。其迭代的收敛曲线示意图可以表示如下：
+![alt text](http://images2015.cnblogs.com/blog/764050/201512/764050-20151230193523495-665207012.png "title")
+#####3.小批量梯度下降法MBGD
+有上述的两种梯度下降法可以看出，其各自均有优缺点，那么能不能在两种方法的性能之间取得一个折衷呢？即，算法的训练过程比较快，而且也要保证最终参数训练的准确率，而这正是小批量梯度下降法（Mini-batch Gradient Descent，简称MBGD）的初衷。
+    &emsp;&emsp;MBGD在每次更新参数时使用b个样本（b一般为10），其具体的伪代码形式为：
+    &emsp;&emsp;Say b=10,m=1000.
+    &emsp;&emsp;Repart{
+      &emsp;&emsp;&emsp;for i=1,11,21,31,...,991{
+        &emsp;&emsp;&emsp;&emsp;$\theta_j:=\theta_j-\alpha\frac{1}{10}\sum_{k=i}^{i+9}(h_\theta(x^{(k)})-y^{(k)})x_j^{(k)}$
+        &emsp;&emsp;&emsp;&emsp;(for every j=0,...,n)
+      &emsp;&emsp;&emsp;}
+    &emsp;&emsp;}
+#####4.总结
+&emsp;**Batch gradient descent:** Use all examples in each iteration；
+&emsp;**Stochastic gradient descent:** Use 1 example in each iteration；
+&emsp;**Mini-batch gradient descent:** Use b examples in each iteration.
